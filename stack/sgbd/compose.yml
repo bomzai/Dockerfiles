@@ -1,0 +1,43 @@
+version: '3.3'
+services:
+  db-redis:
+    image: redis/redis-stack-server:latest
+    networks:
+      - databases
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+    volumes:
+      -  /srv/data/redis:/data
+    restart: always
+  db-mysql:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: to_replace
+    volumes: 
+      - /srv/data/mysql:/var/lib/mysql
+    networks:
+      - databases
+  adminer:
+    image: adminer
+    restart: always
+    command: php -S 0.0.0.0:8080 -t /var/www/html
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.adminer.rule=Host(`to_replace`)
+      - traefik.http.routers.adminer.entrypoints=websecure
+      - traefik.http.services.adminer.loadbalancer.server.port=8080
+      - traefik.http.routers.adminer.service=adminer
+      - traefik.http.routers.adminer.tls.certresolver=lets-encrypt
+    volumes: 
+      - /srv/data/adminer:/srv/adminer
+    networks:
+      - databases
+      - management_web
+networks: 
+  databases:
+    external: true
+  management_web:
+    external: true
+

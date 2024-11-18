@@ -1,0 +1,33 @@
+version: '3.3'
+services:
+  registry:
+    image: registry:latest
+    networks:
+      - databases
+      - management_web
+    environment:
+      - REGISTRY_AUTH=htpasswd
+      - REGISTRY_AUTH_HTPASSWD_REALM=Registry
+      - REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
+      - REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR=redis
+      - REGISTRY_REDIS_ADDR=sgbd-db-redis-1:6379
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+      - REGISTRY_HTTP_ADDR=0.0.0.0:5000
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.registry.rule=Host(`to_replace`)
+      - traefik.http.routers.registry.entrypoints=websecure
+      - traefik.http.services.registry.loadbalancer.server.port=5000
+      - traefik.http.routers.registry.service=registry
+      - traefik.http.routers.registry.tls.certresolver=lets-encrypt
+    volumes:
+      - /srv/data/registry:/var/lib/registry
+      - /srv/conf/registry:/auth
+    depends_on:
+      - sgbd-db-redis-1
+    restart: always
+networks: 
+  databases:
+    external: true
+  management_web:
+    external: true
